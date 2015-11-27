@@ -24,13 +24,10 @@ DataMapper.finalize
 
 before do
   content_type :json
-
-  if params[:token].nil?
-    halt 401, {:error => 'Please provide token'}.to_json
-  end
+  param :token, String, required: true
 
   unless params[:token].eql? $TOKEN
-    halt 401, {:error => 'Incorrect token'}.to_json
+    halt 401, {:message => 'Parameter is invalid', :errors => {:token => 'Parameter is invalid'}}.to_json
   end
 end
 
