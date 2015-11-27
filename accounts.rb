@@ -51,7 +51,13 @@ post '/login' do
 end
 
 post '/lookup' do
-  
+  @found = Account.all(:fields => [:id, :username], :username.like => '%' + params[:username] + '%')
+
+  unless @found.empty?
+    @found.map(&:username).to_json
+  else
+    {:message => 'Accounts matching such username was not found'}.to_json
+  end
 end
 
 post '/changepassword' do
