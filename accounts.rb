@@ -1,6 +1,7 @@
 require 'sinatra/param'
 require 'data_mapper'
 require 'sinatra'
+require 'bcrypt'
 require 'json'
 
 $TOKEN = ""
@@ -11,8 +12,8 @@ class Account
   include DataMapper::Resource
 
   property :id, Serial
-  property :username, String, :length => 15, :unique_index => true 
-  property :email, String, :length => 255
+  property :username, String, :length => 15, :unique => true
+  property :email, String, :length => 255, :format => :email_address
   property :password, BCryptHash
   property :ip, IPAddress
   property :created_at, DateTime
@@ -43,7 +44,19 @@ before /^(?!\/(lookup))/ do
 end
 
 post '/register' do
+  param :email, String, required: true, min_length: 5
+  param :ip, String, required: true, max_length: 39
 
+  if Account.create(
+      :username => params[:username],
+      :password => BCrypt::Password.create(params[:password]),
+      :email => params[:email],
+      :ip => params[:ip]
+  ).saved?
+    {:success => 'Successfully created new account'}.to_json
+  else
+    {:message => 'Account already exists'}.to_json
+  end
 end
 
 post '/login' do
