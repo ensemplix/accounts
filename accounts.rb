@@ -12,9 +12,10 @@ class Account
   include DataMapper::Resource
 
   property :id, Serial
-  property :username, String, :length => 15, :unique => true
+  property :username, String, :length => 15, :unique_index => true
   property :email, String, :length => 255, :format => :email_address
   property :password, BCryptHash
+  property :session, String, :length => 15
   property :ip, IPAddress
   property :created_at, DateTime
   property :updated_at, DateTime
@@ -39,11 +40,8 @@ before do
   param :username, String, required: true, min_length: 3, max_length: 15
 end
 
-before /^(?!\/(lookup))/ do
+get '/register' do
   param :password, String, required: true, min_length: 5, max_length: 25
-end
-
-post '/register' do
   param :email, String, required: true, min_length: 5
   param :ip, String, required: true, max_length: 39
 
@@ -55,21 +53,75 @@ post '/register' do
   ).saved?
     {:success => 'Successfully created new account'}.to_json
   else
-    {:message => 'Account already exists'}.to_json
+    halt 400, {:message => 'Account already exists'}.to_json
   end
 end
 
 post '/login' do
+  param :password, String, min_length: 5, max_length: 25
+  param :session, String, min_length: 15, max_length: 15
+  param :remember, :boolean, default: false
+  any_of :password, :session
 
+  account = Account.first(:username => params[:username])
+
+  if account.nil?
+    halt 400, {:message => 'Account matching such username was not found'}.to_json
+  end
+
+  if params[:password].nil?
+    if account.session.nil?
+      halt 400, {:message => 'Account not using session'}.to_json
+    end
+
+    unless account.session.eql? params[:session]
+      halt 401, {:message => 'Parameter is invalid', :errors => {:session => 'Parameter is invalid'}}.to_json
+    end
+  else
+    unless account.password == params[:password]
+      halt 401, {:message => 'Parameter is invalid', :errors => {:password => 'Parameter is invalid'}}.to_json
+    end
+  end
+
+  @result = {:message => 'Succesfully login'}
+
+  if params[:remember]
+    session = SecureRandom.urlsafe_base64(15);
+    account.update(:session => session)
+    @result += {:session => session}
+  end
+
+  if params[:username].nil?
+    @result += {:username => account[:username]}
+  end
+
+  @result.to_json
+end
+
+post '/logout' do
+  param :session, String, required: true, min_length: 15, max_length: 15
+
+  account = Account.first(:username => params[:username])
+
+  if account.nil?
+    halt 400, {:message => 'Account matching such session was not found'}.to_json
+  end
+
+  if account.session.nil?
+    halt 400, {:message => 'Account not using session'}.to_json
+  end
+
+  account.update(:session => nil)
+  {:success => 'Successfully logout'}.to_json
 end
 
 post '/lookup' do
   found = Account.all(:fields => [:id, :username], :username.like => '%' + params[:username] + '%')
 
-  unless found.empty?
-    found.map(&:username).to_json
-  else
+  if found.empty?
     {:message => 'Accounts matching such username was not found'}.to_json
+  else
+    found.map(&:username).to_json
   end
 end
 
