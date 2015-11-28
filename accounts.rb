@@ -126,5 +126,18 @@ post '/lookup' do
 end
 
 post '/changepassword' do
+  param :old_password, String, required: true, min_length: 5, max_length: 25
+  param :new_password, String, required: true, min_length: 5, max_length: 25
 
+  account = Account.first(:username => params[:username])
+
+  if account.nil?
+    halt 400, {:message => 'Account matching such username was not found'}.to_json
+  end
+
+  unless account.password == params[:old_password]
+    halt 401, {:message => 'Parameter is invalid', :errors => {:old_password => 'Parameter is invalid'}}.to_json
+  end
+
+  {:success => 'Successfully changed password'}.to_json
 end
