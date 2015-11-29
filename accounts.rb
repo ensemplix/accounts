@@ -4,9 +4,7 @@ require 'sinatra'
 require 'bcrypt'
 require 'json'
 
-$TOKEN = ""
-
-DataMapper.setup(:default, 'mysql://user:password@localhost/accounts')
+DataMapper.setup(:default, ENV['DATABASE_URL'])
 
 class Account
   include DataMapper::Resource
@@ -29,10 +27,10 @@ before do
 end
 
 before do
-  param :token, String, required: true
+  signature = OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('SHA1'), ENV['SECRET_TOKEN'], request.body.read)
 
-  unless params[:token].eql? $TOKEN
-    halt 401, {:message => 'Parameter is invalid', :errors => {:token => 'Parameter is invalid'}}.to_json
+  if (request.env['HTTP_API_SIGNATURE'].nil?) || (!request.env['HTTP_API_SIGNATURE'].eql? signature)
+    halt 401, {:message => 'Header is invalid', :errors => {:signature => 'Header is invalid'}}.to_json
   end
 end
 
