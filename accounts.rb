@@ -38,7 +38,7 @@ before do
   param :username, String, required: true, min_length: 3, max_length: 15
 end
 
-get '/register' do
+post '/register' do
   param :password, String, required: true, min_length: 5, max_length: 25
   param :email, String, required: true, min_length: 5
   param :ip, String, required: true, max_length: 39
