@@ -139,5 +139,6 @@ post '/changepassword' do
     halt 401, {:message => 'Parameter is invalid', :errors => {:old_password => 'Parameter is invalid'}}.to_json
   end
 
+  account.update(:password => BCrypt::Password.create(params[:new_password]))
   {:success => 'Successfully changed password'}.to_json
 end
