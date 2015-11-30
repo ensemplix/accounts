@@ -4,6 +4,10 @@ require 'sinatra'
 require 'bcrypt'
 require 'json'
 
+if (ENV['SECRET_TOKEN'].nil?) || (ENV['DATABASE_URL'].nil?)
+  fail 'Please provide required environment variables'
+end
+
 DataMapper.setup(:default, ENV['DATABASE_URL'])
 
 class Account
