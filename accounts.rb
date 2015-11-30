@@ -81,7 +81,7 @@ post '/login' do
     end
   end
 
-  @result = {:message => 'Succesfully login'}
+  @result = {:success => 'Succesfully login'}
 
   if params[:remember]
     session = SecureRandom.urlsafe_base64(15);
