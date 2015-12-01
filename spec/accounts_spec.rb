@@ -48,6 +48,32 @@ describe 'Accounts' do
     end
   end
 
+  context 'Login' do
+    it 'using login and password' do
+      login = {
+          :username => 'koala',
+          :password => 'strongpassword',
+      }
+
+      header 'API-SIGNATURE', signature(login)
+      post '/login', login
+
+      expect(last_response.body).to include('Succesfully login')
+    end
+
+    it 'using session' do
+      session = SecureRandom.urlsafe_base64(15)
+      account = Account.first(:username => 'koala')
+      account.update(:session => session)
+
+      header 'API-SIGNATURE', signature(:session => session)
+      post '/login', :session => session
+
+      expect(last_response.body).to include('Succesfully login')
+      expect(last_response.body).to include('koala')
+    end
+  end
+
   context 'Lookup' do
     it 'found' do
       header 'API-SIGNATURE', signature(:username => 'koal')
