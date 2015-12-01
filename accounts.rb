@@ -17,7 +17,7 @@ class Account
   property :username, String, :length => 15, :unique_index => true
   property :email, String, :length => 255, :format => :email_address
   property :password, BCryptHash
-  property :session, String, :length => 15
+  property :session, String, :length => 20
   property :ip, IPAddress
   property :created_at, DateTime
   property :updated_at, DateTime
@@ -42,7 +42,7 @@ before do
   end
 end
 
-before do
+before /^(?!\/(login))/ do
   param :username, String, required: true, min_length: 3, max_length: 15
 end
 
@@ -66,15 +66,21 @@ post '/register' do
 end
 
 post '/login' do
+  param :username, String, min_length: 3, max_length: 15
   param :password, String, min_length: 5, max_length: 25
-  param :session, String, min_length: 15, max_length: 15
+  param :session, String, min_length: 20, max_length: 20
   param :remember, :boolean, default: false
+  one_of :username, :session
   any_of :password, :session
 
-  account = Account.first(:username => params[:username])
+  if !params[:username].nil?
+    account = Account.first(:username => params[:username])
+  else
+    account = Account.first(:session => params[:session])
+  end
 
   if account.nil?
-    halt 400, {:message => 'Account matching such username was not found'}.to_json
+    halt 400, {:message => 'Account matching such username or session was not found'}.to_json
   end
 
   if params[:password].nil?
@@ -91,23 +97,23 @@ post '/login' do
     end
   end
 
-  @result = {:success => 'Succesfully login'}
+  result = {:success => 'Succesfully login'}
 
   if params[:remember]
-    session = SecureRandom.urlsafe_base64(15);
+    session = SecureRandom.urlsafe_base64(15)
     account.update(:session => session)
-    @result += {:session => session}
+    result[:session] = session
   end
 
   if params[:username].nil?
-    @result += {:username => account[:username]}
+    result[:username] = account[:username]
   end
 
-  @result.to_json
+  result.to_json
 end
 
 post '/logout' do
-  param :session, String, required: true, min_length: 15, max_length: 15
+  param :session, String, required: true, min_length: 20, max_length: 20
 
   account = Account.first(:username => params[:username])
 
