@@ -33,7 +33,11 @@ end
 before do
   signature = OpenSSL::HMAC.hexdigest(OpenSSL::Digest.new('SHA1'), ENV['SECRET_TOKEN'], request.body.read)
 
-  if (request.env['HTTP_API_SIGNATURE'].nil?) || (!request.env['HTTP_API_SIGNATURE'].eql? signature)
+  if request.env['HTTP_API_SIGNATURE'].nil?
+    halt 401, {:message => 'Header is required', :errors => {:signature => 'Header is required'}}.to_json
+  end
+
+  unless request.env['HTTP_API_SIGNATURE'].eql? signature
     halt 401, {:message => 'Header is invalid', :errors => {:signature => 'Header is invalid'}}.to_json
   end
 end
@@ -47,6 +51,10 @@ post '/register' do
   param :email, String, required: true, min_length: 5
   param :ip, String, required: true, max_length: 39
 
+  if Account.first(:username => params[:username])
+    halt 400, {:message => 'Account already exists'}.to_json
+  end
+
   if Account.create(
       :username => params[:username],
       :password => BCrypt::Password.create(params[:password]),
@@ -54,8 +62,6 @@ post '/register' do
       :ip => params[:ip]
   ).saved?
     {:success => 'Successfully created new account'}.to_json
-  else
-    halt 400, {:message => 'Account already exists'}.to_json
   end
 end
 
