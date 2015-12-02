@@ -42,7 +42,7 @@ before do
   end
 end
 
-before /^(?!\/(login))/ do
+before /^(?!\/(login|logout))/ do
   param :username, String, required: true, min_length: 3, max_length: 15
 end
 
@@ -115,14 +115,10 @@ end
 post '/logout' do
   param :session, String, required: true, min_length: 20, max_length: 20
 
-  account = Account.first(:username => params[:username])
+  account = Account.first(:session => params[:session])
 
   if account.nil?
     halt 400, {:message => 'Account matching such session was not found'}.to_json
-  end
-
-  if account.session.nil?
-    halt 400, {:message => 'Account not using session'}.to_json
   end
 
   account.update(:session => nil)
