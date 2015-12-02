@@ -74,6 +74,27 @@ describe 'Accounts' do
     end
   end
 
+  context 'Logout' do
+    session = SecureRandom.urlsafe_base64(15)
+
+    it 'found' do
+      account = Account.first(:username => 'koala')
+      account.update(:session => session)
+
+      header 'API-SIGNATURE', signature(:session => session)
+      post '/logout', :session => session
+
+      expect(last_response.body).to include('Successfully logout')
+    end
+
+    it 'not found' do
+      header 'API-SIGNATURE', signature(:session => session)
+      post '/logout', :session => session
+
+      expect(last_response.body).to include('Account matching such session was not found')
+    end
+  end
+
   context 'Lookup' do
     it 'found' do
       header 'API-SIGNATURE', signature(:username => 'koal')
